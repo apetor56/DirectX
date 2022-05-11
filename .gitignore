@@ -36,3 +36,7 @@ build/
 
 # bin directory with executables
 bin/
+
+# some .json files
+.vscode/settings.json
+.vscode/c_cpp_properties.json
