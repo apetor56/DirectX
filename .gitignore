@@ -30,3 +30,9 @@
 *.exe
 *.out
 *.app
+
+# CMake build directory
+build/
+
+# bin directory with executables
+bin/
