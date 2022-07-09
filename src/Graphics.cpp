@@ -3,6 +3,8 @@
 #include <sstream>
 #include <cstdlib>
 
+namespace wrl = Microsoft::WRL;
+
 // 'hr' must exist locally in function!
 #define GFX_THROW_FAILED(hrcall) if(FAILED(hr = (hrcall))) throw Graphics::HrException(__LINE__, __FILE__, hrcall)
 #define GFX_DEVICE_REMOVED_EXCEPT(hr) Graphics::DeviceRemovedException(__LINE__, __FILE__, (hr))
@@ -42,30 +44,13 @@ Graphics::Graphics(HWND hWnd) {
         &context_ptr
     ));
 
-    ID3D11Resource *backBuffer_ptr = nullptr;
-    GFX_THROW_FAILED(swap_ptr->GetBuffer(0, __uuidof(ID3D11Resource), reinterpret_cast<void**>(&backBuffer_ptr)));
+    wrl::ComPtr<ID3D11Resource> backBuffer_ptr;
+    GFX_THROW_FAILED(swap_ptr->GetBuffer(0, __uuidof(ID3D11Resource), &backBuffer_ptr));
     GFX_THROW_FAILED(device_ptr->CreateRenderTargetView(
-        backBuffer_ptr,
+        backBuffer_ptr.Get(),
         nullptr,
         &view_ptr
     ));
-
-    backBuffer_ptr->Release();
-}
-
-Graphics::~Graphics() {
-    if(view_ptr != nullptr) {
-        view_ptr->Release();
-    }
-    if(swap_ptr != nullptr) {
-        swap_ptr->Release();
-    }
-    if(device_ptr != nullptr) {
-        device_ptr->Release();
-    }
-    if(context_ptr != nullptr) {
-        context_ptr->Release();
-    }
 }
 
 void Graphics::endFrame() {
@@ -83,7 +68,7 @@ void Graphics::endFrame() {
 
 void Graphics::clearBuffer(float red, float green, float blue) noexcept {
     const float color[] = {red, green, blue, 1.0f};
-    context_ptr->ClearRenderTargetView(view_ptr, color);
+    context_ptr->ClearRenderTargetView(view_ptr.Get(), color);
 }
 
 // graphics exception implementation
