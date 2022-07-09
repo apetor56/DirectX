@@ -11,8 +11,12 @@
 #include "Timer.hpp"
 #include "Graphics.hpp"
 
-#define DXWND_EXCEPT(hr) Window::Exception(__LINE__, __FILE__, hr)
-#define DXWND_LAST_EXCEPT() Window::Exception(__LINE__, __FILE__, GetLastError())
+// #define DXWND_EXCEPT(hr) Window::Exception(__LINE__, __FILE__, hr)
+// #define DXWND_LAST_EXCEPT() Window::Exception(__LINE__, __FILE__, GetLastError())
+
+#define DXWND_EXCEPT( hr ) Window::HrException( __LINE__,__FILE__,(hr) )
+#define DXWND_LAST_EXCEPT() Window::HrException( __LINE__,__FILE__,GetLastError() )
+#define DXWND_NOGFX_EXCEPT() Window::NoGfxException( __LINE__,__FILE__ )
 
 class Window {
 public:
@@ -32,23 +36,28 @@ public:
 
     static std::optional<int> processMessages();
 
-    class Exception : public DXException {
-    public:
-        Exception(int line, const char *file, HRESULT hr) noexcept;
-
-        const char *what() const noexcept override;
-
-        virtual const char* getType() const noexcept override;
-
-        static std::string translateErrorCode(HRESULT hr) noexcept;
-
-        HRESULT getErrorCode() const noexcept;
-
-        std::string getErrorString() const noexcept;
-    
-    private:
-        HRESULT hr;
-    };
+    class Exception : public DXException
+	{
+		using DXException::DXException;
+	public:
+		static std::string TranslateErrorCode( HRESULT hr ) noexcept;
+	};
+	class HrException : public Exception
+	{
+	public:
+		HrException( int line,const char* file,HRESULT hr ) noexcept;
+		const char* what() const noexcept override;
+		const char* getType() const noexcept override;
+		HRESULT GetErrorCode() const noexcept;
+	private:
+		HRESULT hr;
+	};
+	class NoGfxException : public Exception
+	{
+	public:
+		using Exception::Exception;
+		const char* getType() const noexcept override;
+	};
 
     Graphics& gfx();
 
