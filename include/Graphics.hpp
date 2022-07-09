@@ -5,6 +5,7 @@
 #include "DXException.hpp"
 #include <d3d11.h>
 #include <vector>
+#include <wrl.h>
 
 class Graphics {
 public:
@@ -45,7 +46,7 @@ public:
 
     Graphics(HWND hWnd);
 
-    ~Graphics();
+    ~Graphics() = default;
 
     Graphics(const Graphics& graphics) = delete;
 
@@ -56,10 +57,10 @@ public:
     void clearBuffer(float red, float green, float blue) noexcept;
 
 private:
-    ID3D11Device *device_ptr = nullptr;
-    IDXGISwapChain *swap_ptr = nullptr;
-    ID3D11DeviceContext *context_ptr = nullptr;
-    ID3D11RenderTargetView *view_ptr = nullptr;
+    Microsoft::WRL::ComPtr<ID3D11Device> device_ptr;
+    Microsoft::WRL::ComPtr<IDXGISwapChain> swap_ptr;
+    Microsoft::WRL::ComPtr<ID3D11DeviceContext> context_ptr;
+    Microsoft::WRL::ComPtr<ID3D11RenderTargetView> view_ptr;
 };
 
 #endif // GRAPHICS_HPP
