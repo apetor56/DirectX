@@ -202,60 +202,64 @@ LRESULT Window::HandleMsg(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam) noe
 
 // Window exception
 
-Window::Exception::Exception(int line, const char *file, HRESULT hr) noexcept
-:   DXException(line, file),
-    hr(hr) {}
-
-const char *Window::Exception::what() const noexcept {
-    std::ostringstream oss;
-
-    oss << getType() << '\n'
-    << "[Error code] " << getErrorCode() << '\n'
-    << "[Description] " << getErrorString() << '\n'
-    << getOriginString();
-
-    /* we can't return oss.c_str() directly because
-      it will not exist after what() function execution
-      and we can't return pointer to nothing so the result
-      of oss.str() will be stored in class memeber 'whatBuffer' */
-    
-    whatBuffer = oss.str();
-    return whatBuffer.c_str();
+std::string Window::Exception::TranslateErrorCode( HRESULT hr ) noexcept
+{
+	char* pMsgBuf = nullptr;
+	// windows will allocate memory for err string and make our pointer point to it
+	const DWORD nMsgLen = FormatMessage(
+		FORMAT_MESSAGE_ALLOCATE_BUFFER |
+		FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+		nullptr,hr,MAKELANGID( LANG_NEUTRAL,SUBLANG_DEFAULT ),
+		reinterpret_cast<LPSTR>(&pMsgBuf),0,nullptr
+	);
+	// 0 string length returned indicates a failure
+	if( nMsgLen == 0 )
+	{
+		return "Unidentified error code";
+	}
+	// copy error string from windows-allocated buffer to std::string
+	std::string errorString = pMsgBuf;
+	// free windows buffer
+	LocalFree( pMsgBuf );
+	return errorString;
 }
 
-const char *Window::Exception::getType() const noexcept {
-    return "DX Exception";
+Window::HrException::HrException( int line,const char* file,HRESULT hr ) noexcept
+	:
+	Exception( line,file ),
+	hr( hr )
+{}
+
+const char* Window::HrException::what() const noexcept
+{
+	std::ostringstream oss;
+	oss << getType() << std::endl
+		<< "[Error Code] 0x" << std::hex << std::uppercase << GetErrorCode()
+		<< std::dec << " (" << (unsigned long)GetErrorCode() << ")" << std::endl
+		<< getOriginString();
+	whatBuffer = oss.str();
+	return whatBuffer.c_str();
 }
 
-std::string Window::Exception::translateErrorCode(HRESULT hr) noexcept {
-    char *pMsgBuf = nullptr;
-
-    DWORD nMsgLen = FormatMessage(
-        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
-        FORMAT_MESSAGE_IGNORE_INSERTS,
-        nullptr, hr, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-        reinterpret_cast<LPSTR>(&pMsgBuf), 0, nullptr
-    );
-
-    if(nMsgLen == 0) {
-        return "Unidentified error code";
-    }
-
-    std::string errorString = pMsgBuf;
-    LocalFree(pMsgBuf);
-
-    return errorString;
+const char* Window::HrException::getType() const noexcept
+{
+	return "Chili Window Exception";
 }
 
-HRESULT Window::Exception::getErrorCode() const noexcept {
-    return hr;
+HRESULT Window::HrException::GetErrorCode() const noexcept
+{
+	return hr;
 }
 
-std::string Window::Exception::getErrorString() const noexcept {
-    return translateErrorCode(hr);
+const char* Window::NoGfxException::getType() const noexcept
+{
+	return "Chili Window Exception [No Graphics]";
 }
 
 Graphics& Window::gfx() {
+    if(!graphics_ptr) {
+        throw DXWND_NOGFX_EXCEPT();
+    }
     return *graphics_ptr;
 }
 
